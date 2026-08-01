@@ -338,6 +338,8 @@
   <blockquote class="reveal">Still a <span class="accent">student</span>. Already building toward <span class="accent2">something bigger</span>.</blockquote>
 </div>
 
+<div class="foot-note mono" style="text-align:center;">Visitors: <span id="visitorCount">—</span></div>
+
 <script>
   // Page loading animation
   const loader = document.getElementById('loader');
@@ -460,6 +462,32 @@
   }
   updateClock();
   setInterval(updateClock, 1000);
+
+  // Visitor counter — counts once per device per 24hrs, not per refresh
+  (async function trackVisitor(){
+    const el = document.getElementById('visitorCount');
+    const NAMESPACE = 'nibir-portfolio-site'; // change if reusing this snippet elsewhere
+    const KEY = 'visits';
+    const STORAGE_KEY = 'nibir_last_counted';
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    try{
+      const last = localStorage.getItem(STORAGE_KEY);
+      const isNewVisit = !last || (Date.now() - parseInt(last, 10) > DAY_MS);
+      const endpoint = isNewVisit
+        ? `https://abacus.jasoncameron.dev/hit/${NAMESPACE}/${KEY}`
+        : `https://abacus.jasoncameron.dev/get/${NAMESPACE}/${KEY}`;
+
+      const res = await fetch(endpoint);
+      const data = await res.json();
+      if(el) el.textContent = data.value;
+
+      if(isNewVisit) localStorage.setItem(STORAGE_KEY, Date.now().toString());
+    }catch(err){
+      if(el) el.textContent = 'n/a';
+      console.error('Visitor counter failed:', err);
+    }
+  })();
 </script>
 
 </body>
