@@ -210,6 +210,27 @@
     section{padding:64px 5vw;}
   }
   @media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important;}}
+
+  /* Visitor counter — fixed bottom-right, animated */
+  #visitor-widget{
+    position:fixed;right:22px;bottom:22px;z-index:900;
+    display:flex;align-items:center;gap:9px;
+    padding:10px 16px;border-radius:100px;
+    background:rgba(16,18,22,0.75);backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.12);
+    font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--muted);
+    opacity:0;transform:translateY(10px);
+    animation:widgetIn .8s ease forwards 1.6s;
+  }
+  @keyframes widgetIn{to{opacity:1;transform:translateY(0);}}
+  #visitor-eye{width:16px;height:16px;flex-shrink:0;color:var(--teal);}
+  #visitor-eye .pupil{animation:eyeBlink 4.5s ease-in-out infinite;transform-origin:center;}
+  @keyframes eyeBlink{0%,92%,100%{transform:scaleY(1);}94%,96%{transform:scaleY(0.15);}}
+  #visitorCount{color:var(--ink);font-weight:500;letter-spacing:0.02em;}
+  @media (max-width:600px){
+    #visitor-widget{right:14px;bottom:14px;padding:8px 13px;font-size:0.7rem;}
+    #visitor-eye{width:14px;height:14px;}
+  }
 </style>
 </head>
 <body>
@@ -338,7 +359,13 @@
   <blockquote class="reveal">Still a <span class="accent">student</span>. Already building toward <span class="accent2">something bigger</span>.</blockquote>
 </div>
 
-<div class="foot-note mono" style="text-align:center;">Visitors: <span id="visitorCount">—</span></div>
+<div id="visitor-widget">
+  <svg id="visitor-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"></path>
+    <circle class="pupil" cx="12" cy="12" r="3"></circle>
+  </svg>
+  <span id="visitorCount">···</span>
+</div>
 
 <script>
   // Page loading animation
@@ -464,6 +491,20 @@
   setInterval(updateClock, 1000);
 
   // Visitor counter — counts once per device per 24hrs, not per refresh
+  function animateCount(el, target){
+    let start = 0;
+    const duration = 1200;
+    const startTime = performance.now();
+    function step(now){
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.floor(eased * target);
+      if(progress < 1) requestAnimationFrame(step);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(step);
+  }
+
   (async function trackVisitor(){
     const el = document.getElementById('visitorCount');
     const NAMESPACE = 'nibir-portfolio-site'; // change if reusing this snippet elsewhere
@@ -480,7 +521,7 @@
 
       const res = await fetch(endpoint);
       const data = await res.json();
-      if(el) el.textContent = data.value;
+      if(el) animateCount(el, data.value);
 
       if(isNewVisit) localStorage.setItem(STORAGE_KEY, Date.now().toString());
     }catch(err){
